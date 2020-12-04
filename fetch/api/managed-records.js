@@ -3,11 +3,12 @@ import URI from "urijs";
 
 // /records endpoint
 window.path = "http://localhost:3000/records";
+const primaryColors = ["red", "blue", "yellow"];
 
 // Your retrieve function plus any additional functions go here ...
 function retrieve(options) {
   let colors = options.colors || ["red", "brown", "blue", "yellow", "green"];
-  const limit = 10;
+  const limit = 11;
   let page = options.page || 1;
   let offset = (page - 1) * 10;
 
@@ -36,16 +37,36 @@ function retrieve(options) {
               "open": [],
               "closedPrimaryCount": 0
             };
+            if (page === 1) {
+              transformedData["previousPage"] = null;
+            } else {
+              transformedData["previousPage"] = page - 1;
+            }
+            console.log("the previous page is " + transformedData["previousPage"]);
             retrievedRecords.forEach((record) => {
+              let primaryColor = isPrimaryColor(record["color"]);
               transformedData["ids"].push(record["id"]);
+              if (record["disposition"] === "open") {
+                record["isPrimary"] = primaryColor;
+                transformedData["open"].push(record);
+              } else {
+                if (primaryColor) {
+                  transformedData["closedPrimaryCount"] = transformedData["closedPrimaryCount"] + 1;
+                }
+              }
               console.log(`'here's a record`);
               console.log(record);
               console.log(transformedData["ids"]);
+              console.log(transformedData["closedPrimaryCount"]);
             })
           })
           // .catch((error) => {
           //   console.log(error);
           // });
+}
+
+function isPrimaryColor(color) {
+  return primaryColors.indexOf(color) !== -1 ? true : false;
 }
 
 export default retrieve;
