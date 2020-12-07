@@ -3,32 +3,33 @@ import URI from "urijs";
 
 // /records endpoint
 window.path = "http://localhost:3000/records";
+
 const primaryColors = ["red", "blue", "yellow"];
 
 // Your retrieve function plus any additional functions go here ...
 function retrieve(options) {
+  //set options if not passed in
   options = options || {};
   let colors = options.colors || ["red", "brown", "blue", "yellow", "green"];
   const limit = 11;
   let page = options.page || 1;
   let offset = (page - 1) * 10;
 
-  //addSearch test, using search compiles the same query
-  let requestURL = URI("http://localhost:3000/records")
+  //builds our request URL with options
+  let requestURL = URI(window.path)
                          .addSearch("offset", offset)
                          .addSearch("limit", limit)
                          .addSearch("color[]", colors);
-  console.log('requestURL is ' + requestURL);
 
   return fetch(requestURL)
           .then((response) => {
             if (response.ok) {
               return response.json();
             } else {
-              console.log('error message ' + response.status);
-              // throw new Error(response.status);
+              throw ('error message ' + response.status);
             }
           }).then((retrievedRecords) => {
+            //our transformed data that will ultimately be returned
             let transformedData = {
               "ids": [],
               "open": [],
@@ -36,22 +37,25 @@ function retrieve(options) {
               "previousPage": null,
               "nextPage": null
             };
-            if (retrievedRecords.length === 0) {
-              return transformedData;
-            }
+
             if (page !== 1) {
               transformedData["previousPage"] = page - 1;
             }
-            if (retrievedRecords.length === 10) {
-              transformedData["nextPage"] = null;
-            } else {
+
+            if (retrievedRecords.length === 0) {
+              return transformedData;
+            }
+
+            if (retrievedRecords.length === limit) {
               transformedData["nextPage"] = page + 1;
               retrievedRecords.pop();
             }
-            console.log("the previous page is " + transformedData["previousPage"]);
+
             retrievedRecords.forEach((record) => {
+
               let primaryColor = isPrimaryColor(record["color"]);
               transformedData["ids"].push(record["id"]);
+
               if (record["disposition"] === "open") {
                 record["isPrimary"] = primaryColor;
                 transformedData["open"].push(record);
@@ -60,17 +64,15 @@ function retrieve(options) {
                   transformedData["closedPrimaryCount"] = transformedData["closedPrimaryCount"] + 1;
                 }
               }
-              console.log(`'here's a record`);
-              console.log(record);
-              console.log(transformedData["ids"]);
-              console.log(transformedData["closedPrimaryCount"]);
             })
+
             return transformedData;
           }).catch((error) => {
-            console.log('error ' + error);
-          })
+            console.log(error);
+          });
 }
 
+//helper function to determine whether a color is considered primary
 function isPrimaryColor(color) {
   return primaryColors.indexOf(color) !== -1 ? true : false;
 }
